@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html ng-app="listaTelefonica">
+<head>
+	<meta charset="utf-8">
+	<title>Lista Telefonica</title>
+	<link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+	<style>
+		.jumbotron {
+			width: 600px;
+			text-align: center;
+			margin-left: auto;
+			margin-right: auto;
+			margin-top: 20px;
+		}
+		.table {
+			margin-top: 20px;
+		}
+		.form-control {
+			margin-bottom: 5px;
+		}
+		.selecionado {
+			background-color: yellow;
+		}
+		.negrito {
+			font-weight: bold;
+		}
+	</style>
+	<script src="lib/angular/angular.min.js"></script> 
+	<script src="lib/angular/angular-messages.min.js"></script> 
+	<script src="lib/angular/angular-locale_pt-br.js"></script> 
+	<script>
+		angular.module("listaTelefonica", ["ngMessages"]);
+		angular.module("listaTelefonica").controller("listaTelefonicaController", function ($scope, $filter, uppercaseFilter) {
+				$scope.app = "Lista Telefonica";
+				$scope.contatos = [
+					{nome: $filter('uppercase')("Pedro"), telefone: "99991111", data: new Date(), operadora: {nome: "Oi", codigo: 14, categoria: "Celular"}, cor: "blue"},
+					{nome: uppercaseFilter("Ana"), telefone: "99992222", data: new Date(), operadora: {nome: "Vivo", codigo: 15, categoria: "Celular"}, cor: "brown"},
+					{nome: "Maria", telefone: "99993333", data: new Date(), operadora: {nome: "GVT", codigo: 25, categoria: "Fixo"}, cor: "red"}
+				];
+				$scope.operadoras = [
+					{nome: "Oi", codigo: 14, categoria: "Celular", preco: 2},
+					{nome: "Vivo", codigo: 15, categoria: "Celular", preco: 3},
+					{nome: "Tim", codigo: 41, categoria: "Celular", preco: 1},
+					{nome: "GVT", codigo: 25, categoria: "Fixo", preco: 4},
+					{nome: "Embratel", codigo: 21, categoria: "Fixo", preco: 6},
+				];
+				$scope.adicionarContato = function (contato) {
+					// Exitem três formas de adicionar o objeto na array:
+
+					// Forma Ruim (receber por Scope):
+					// Quebra o mantra de evitar ao máximo ler o scope estando
+					// dentro do controller (escrever é normal,
+					// ler deixa aplicação menos clara, quando um teste unitário
+					// for criado para este controller, será necessário
+					// atribuir valor ao scope, em vez de passar o parâmetros de 
+					// forma explícita).
+					/*$scope.contatos.push({nome: $scope.nome, telefone: $scope.telefone});*/
+
+					// Forma Média (receber por parâmetro da function):
+					// Ainda não é a melhor maneira, pois tem uma burocracia
+					// na criação do objeto e setar na lista.
+					/*$scope.contatos.push({nome: nome, telefone: telefone});*/
+
+					// Forma Boa (abstração do contato na diretiva ng-model)
+					// Porém é interessante copiar o objeto, pois a refência
+					// será mantida, no caso dessa aplicação, quando mudados
+					// valor no input, iria mudar na tabela ao mesmo tempo,
+					// o que não acontece pois estamos utilizando angular.copy
+					// para criar um nova instânacia do objeto na lista.
+					// Então limpamos a antiga refência com o delete.
+					$scope.contatos.push(angular.copy(contato));
+					delete $scope.contato;
+					$scope.contatoForm.$setPristine();
+				};
+				$scope.apagarContato = function (contatos) {
+					$scope.contatos = contatos.filter(function (contato) {
+						if (!contato.selecionado) {
+							return contato;
+						}
+					});
+				};
+				$scope.contatoSelecionado = function(contatos) {
+					return contatos.some( function (contato) {
+						return contato.selecionado;
+					});
+				};
+				$scope.ordenarPor = function (campo) {
+					$scope.criterioOrdenacao = campo;
+					$scope.direcaoOrdenacao = !$scope.direcaoOrdenacao;
+				}
+
+				/* Adcionando valorer ao escopo no atributo classe, que
+				será utilizado na diretiva ng-class
+				$scope.classe = "selecionado";
+				$scope.classe1 = "selecionado";
+				$scope.classe2 = "negrito";*/
+			})
+	</script>
+</head>
+<body ng-controller="listaTelefonicaController">
+	<div class="jumbotron">
+		<!-- <h4 ng-bind="app"></h4> -->
+		<h3>{{app}}</h3>
+		<input class="form-control" type="text" ng-model="criterioBusca" placeholder="O que você está buscando?">
+		<table ng-hide="contatos.length <= 0" class="table">
+			<tr>
+				<th></th>
+				<th><a href="" ng-click="ordenarPor('nome')">Nome</a></th>
+				<th><a href="" ng-click="ordenarPor('telefone')">Telefone</a></th>
+				<th>Operadora</th>
+				<th>Data</th>
+			</tr>
+			<tr ng-class="{'selecionado negrito': contato.selecionado}" ng-repeat="contato in contatos | filter:{nome: criterioBusca} | orderBy:criterioOrdenacao:direcaoOrdenacao">
+				<!-- Outras duas formas de adicionar uma classe dinamicamente,
+				na primeira é adicionado um diretamente e na segunda é adicionado
+				mais de uma através de array.
+				ng-class="classe"
+				ng-class="[classe1, classe2]" -->
+
+				<!-- No orderBy:
+					orderBy:'nome':false ou orderBy:'+nome' -> representam o ordem crescente
+					orderBy:'nome':true ou orderBy:'-nome' -> representam o ordem descrescente
+				-->
+
+				<!-- A forma abaixo quer dizer a mesma coisa que está no ng-class do tr, porém
+					lá foi refatorado, pois tendo string como identificador, podemos pegar mais
+					de um objeto, colocando eles entre aspas e seperando por espaço em branco.
+					ng-class="{selecionado: contato.selecionado, negrito: contato.selecionado}"-->
+
+				<td><input type="checkbox" ng-model="contato.selecionado"/></td>
+				<td>{{contato.nome}}</td>
+				<td>{{contato.telefone}}</td>
+				<td>{{contato.operadora.nome | lowercase}}</td>
+				<td>{{contato.data | date:'dd/MM/yyyy HH:,mm'}}</td>
+				<td><div style="width: 20px; height: 20px;" ng-style="{'background-color': contato.cor}"></div></td>
+			</tr>
+			<!-- <tr ng-repeat="contato in contatos">
+				<td ng-repeat="(key,value) in contato">
+					{{value}}
+				</td>
+			</tr> -->
+		</table>
+		<hr/>
+		<form name="contatoForm">
+			<input class="form-control" type="text" ng-model="contato.nome" name="nome" placeholder="Nome" ng-required="true" ng-minlength="10"/>
+			<input class="form-control" type="text" ng-model="contato.telefone" name="telefone" placeholder="Telefone" ng-required="true" ng-pattern="/^\d{4,5}-\d{4}$/"/>
+			<select class="form-control" ng-model="contato.operadora" ng-options="operadora.codigo as operadora.nome + ' (' + (operadora.preco | currency) + ')' group by operadora.categoria for operadora in operadoras | orderBy:'nome'">
+				<!-- Para passar o value do select como apenas o código da operadora, sendo
+				que o label será o nome da operadora. -->
+				<!-- ng-options="operadora.codigo as operadora.nome for operadora in operadoras" -->
+				<option value="">Selecione uma operadora</option>
+			</select>
+		</form>
+		
+		<div ng-messages="contatoForm.nome.$error" class="alert alert-danger">
+			<div ng-show="required">
+				Por favor, preencha o nome!
+			</div>
+			<div ng-show="minlength">
+				O campo nome deve ter no mínimo 10 caracteres.
+			</div>
+		</div>
+		
+		<div ng-show="contatoForm.telefone.$error.required && contatoForm.telefone.$dirty" class="alert alert-danger">
+			Por favor, preencha o telefone!
+		</div>
+		<div ng-show="contatoForm.telefone.$error.pattern && contatoForm.telefone.$dirty" class="alert alert-danger">
+			O campo telefone deve estar no formato DDDDD-DDDD.
+		</div>
+
+		<!-- Essa solução para bloquear o campo não tão boa, mais para frente usaremos o
+		ng-required para validar que apresenta um solução mais elegante -->
+		<button class="btn btn-primary btn-block" ng-click="adicionarContato(contato)" ng-disabled="contatoForm.$invalid">Adicionar</button>
+		<button class="btn btn-danger btn-block" ng-click="apagarContato(contatos)" ng-show="contatoSelecionado(contatos)">Apagar</button>
+		<!-- ng-show: utiliza o diplay none ou show, ou seja o elemento sempre estará
+			 lá o que mudar é se ele será visível ou não.
+			 ng-if: interage com o DOM removendo o elemento caso a condição não false -->
+		<!-- {{contato}} -->
+	</div>
+	<!-- Não irá funcionar no chrome, a página seja aberto por arquivo (procotolo file),
+	porém funciona normalmente utilizando um servidor de aplicação. -->
+	<!-- <div ng-include="'footer.html'">
+		
+	</div> -->
+</body>
+</html>
